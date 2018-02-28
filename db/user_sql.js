@@ -1,0 +1,9 @@
+var userSQL = {  
+    insert:'INSERT INTO user(username,password,date,type,openid) VALUES(?,?,?,?,?)', 
+    bind:'UPDATE user SET type = ?,openid = ? WHERE username = ? AND password = ? ',
+    queryAll:'SELECT * FROM user',  
+    getUserByOpenid:'SELECT * FROM user WHERE openid = ? ', 
+    getUserByNamePass:'SELECT * FROM user WHERE username = ? AND password = ? ',
+    deleteUserByNamePass:'DELETE FROM user WHERE username = ? AND password = ? ',
+};
+module.exports = userSQL;
