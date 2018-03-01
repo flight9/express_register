@@ -15,8 +15,10 @@ var app = express();
 app.use(session({ 
     secret: 'secret',
     cookie:{ 
-      maxAge: 1000*60*30 // 30 min?
-    }
+      maxAge: 1000*60*30 // 30 min
+    },
+		resave: false,
+		saveUninitialized: true
 }));
 app.use(function(req,res,next){ 
 	res.locals.user = req.session.user; 

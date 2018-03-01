@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title><%= title %></title>
-    <link rel="stylesheet" href="stylesheets/bootstrap.min.css" media="screen">
+    <link rel="stylesheet" href="/stylesheets/bootstrap.min.css" media="screen">
     <style type="text/css">
     .m15{ margin: 15px;}
     .tc{ text-align: center;font-size: 18px;font-weight: 600;}
@@ -50,19 +50,19 @@
         </form>
     </div>
 
-    <script type="text/javascript" src="javascripts/jquery.min.js"></script>
-    <script type="text/javascript" src="javascripts/bootstrap.min.js"></script>
+    <script type="text/javascript" src="/javascripts/jquery.min.js"></script>
+    <script type="text/javascript" src="/javascripts/bootstrap.min.js"></script>
     <script type="text/javascript">
     $(function(){ 
         $("#register0").click(function(){ 
-            location.href = 'register';
+            location.href = '/wechat/register';
         });
         $("#login0").click(function(){ 
             var username = $("#username").val();
             var password = $("#password").val();
             var data = {"username":username,"password":password};
             $.ajax({ 
-                url:'/login',
+                url:'/wechat/login',
                 type:'post',
                 data: data,
 								dataType: 'json',
@@ -70,7 +70,7 @@
 										console.log('login:', data)
 										alert(data.msg)
                     if(data.status == 100){ 
-                      location.href = 'home';
+                      location.href = '/wechat/home';
                     }
                 }
             });

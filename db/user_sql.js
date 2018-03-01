@@ -1,6 +1,6 @@
 var userSQL = {  
     insert:'INSERT INTO user(username,password,date,type,openid) VALUES(?,?,?,?,?)', 
-    bind:'UPDATE user SET type = ?,openid = ? WHERE username = ? AND password = ? ',
+    bind:'UPDATE user SET type = ?,openid = ? WHERE id = ?',
     queryAll:'SELECT * FROM user',  
     getUserByOpenid:'SELECT * FROM user WHERE openid = ? ', 
     getUserByNamePass:'SELECT * FROM user WHERE username = ? AND password = ? ',
