@@ -52,7 +52,7 @@ router.get(prefix+ '/callback', function(req, res, next) {
 			accessToken = result.data.access_token
 			openid = result.data.openid
 			req.session.openid = openid
-			//req.session.save() // 注意：每次代码修改后 server 重启 session 会丢失
+			// 注意：每次代码修改后 server 重启 session 会丢失
 		}
 		console.log('Openid:', openid)
 		console.log('AccessToken:', accessToken)
@@ -60,14 +60,14 @@ router.get(prefix+ '/callback', function(req, res, next) {
 		// openid
 		db.query(userSql.getUserByOpenid, [openid], function (err, results){
 			if(err) {
-				throw err
+				next(err)
 			}
 			else {
 				//console.log('getUserByOpenid:', results)
 				if (results.length !== 0) {
 					// user with openid
 					var user = results[0]
-					if(user.type > 0) {
+					if(user.type > 0) { // type =0 未批准/ >0 批准(且代表用户类型)
 						req.session.user = results[0]
 						res.redirect(prefix+ '/home')
 					}
@@ -82,7 +82,7 @@ router.get(prefix+ '/callback', function(req, res, next) {
 			}
 		})
 		
-		/* TODO: getUserInfo()
+		/* TODO: 进一步获取用户资料，将保存到另一张表中
 		oauthApi.getUser(openid, function (err, result1) { 
 			console.log('getUser err: ', err)
 			console.log('getUser user: ', result1)
@@ -94,27 +94,31 @@ router.get(prefix+ '/callback', function(req, res, next) {
 })
 
 /* GET register page. */
-router.route(prefix+ "/register").get(function(req,res){ 
+router.route(prefix+ '/register').get(function(req,res){ 
 	console.log('Register openid:', req.session.openid)
 	console.log('Register sessionId:', req.session.id)
-	res.render("register", {
-		title:'User register'
-	});
-}).post(function(req,res){
+	res.render('register', { title:'User register' });
+}).post(function(req, res, next){
 	var param = req.body;
-	db.query(userSql.getUserByNamePass, [param.username,param.password], function (err, results){
+	db.query(userSql.getUserByName, [param.username], function (err, results){
 		if(err) {
-			throw err
+			next(err)
 		}
 		else {
 			if (results.length == 0) {
-				// 用户不存在(存在问题: 相同用户名，不同密码)
+				// 用户不存在
 				var openid = req.session.openid
+				var type = 0
 				console.log('Register openid:', openid)
-				db.query(userSql.insert, [param.username,param.password,Date.parse(new Date())/1000,0,openid],function (err, results) {
+				if(!openid) {
+					return next(new Error('Openid is missing!'))
+				}
+				
+				db.query(userSql.insert, [param.username,param.password,Date.parse(new Date())/1000,type,openid], function (err, results) {
 					if(err){
-						throw err
-					}else{
+						next(err)
+					}
+					else{
 						res.send({status:100, msg:'新用户注册成功!', redir:prefix+ '/wait'});
 					}
 				})
@@ -137,24 +141,28 @@ router.route(prefix+ '/bind').get(function(req,res){
 	var param = req.body;
 	db.query(userSql.getUserByNamePass, [param.username,param.password], function (err, results){
 		if(err) {
-			throw err
+			next(err)
 		}
 		else {
 			var user = results[0]
 			var openid = req.session.openid
 			var type = 1
-			//console.log('getUserByNamePass:', user)
 			console.log('Bind openid:', openid)
+			if(!openid) {
+				return next(new Error('Openid is missing!'))
+			}
+			
 			if (results.length == 0) {
 				// 用户不存在
 				res.send({status:102, msg:'错误: 用户名或密码错误!'});
 			}
 			else {
 				// 用户已存在
+				// TODO: 如果该用户已经绑定别的 openid 了呢？
 				db.query(userSql.bind, [type, openid, user.id], function (err, results){
 					console.log('userSql.bind', err, results)
 					if(err) {
-						throw err
+						next(err)
 					}
 					else {
 						user.openid = openid
@@ -173,19 +181,17 @@ router.get(prefix+ '/home', function(req,res){
 	console.log('Home:', req.session)
 	//到达/home路径首先判断是否已经登录
 	if(!req.session.user){                     	
-		req.session.error = "请先登录"
 		res.redirect(prefix);
 	}
 	else {
-		res.render("home", {title:'Home'});
+		res.render('home', {title:'Home'});
 	}
 });
 
 /* GET logout page. */
 router.get(prefix+ '/logout', function(req,res){    
     req.session.user = null;
-    req.session.error = null;
-    res.redirect("/");
+    res.redirect('/');
 });
 
 module.exports = router;

@@ -20,11 +20,13 @@ app.use(session({
 		resave: false,
 		saveUninitialized: true
 }));
+
+//我: 这个并不是错误处理，只是一种旧的错误信息传递给模板的机制
 app.use(function(req,res,next){ 
 	res.locals.user = req.session.user; 
 	var err = req.session.error;
 	delete req.session.error;
-	res.locals.message = "";
+	res.locals.message = '';
 	if(err){ 
 		res.locals.message = '<div class="alert alert-danger" style="margin-bottom:20px;color:red;">'+err+'</div>';
 	}
