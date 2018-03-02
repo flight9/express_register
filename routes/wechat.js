@@ -6,6 +6,7 @@ var oauthApi = require('../wechat/oauth_api')
 // setup Mysql
 var config = require('../db/config');
 var userSql = require('../db/user_sql');
+var wcUserSql = require('../db/wechat_user_sql');
 var db = mysql.createConnection(config.mysql);
 
 var prefix = '/wechat'
@@ -76,15 +77,6 @@ router.get(prefix+ '/callback', function(req, res, next) {
 				}
 			}
 		})
-		
-		/* TODO: 进一步获取用户资料，将保存到另一张表中
-		oauthApi.getUser(openid, function (err, result1) { 
-			console.log('getUser err: ', err)
-			console.log('getUser user: ', result1)
-			var oauth_user = result1 
-			res.redirect('/') 
-		}) 
-		*/
 	})	
 })
 
@@ -105,18 +97,39 @@ router.route(prefix+ '/register').get(function(req,res){
 				var openid = req.session.openid
 				var type = 0
 				console.log('Register openid:', openid)
-				if(!openid) {
-					return next(new Error('Openid is missing!'))
-				}
+				if(!openid)  return next(new Error('Openid is missing!'))
 				
-				db.query(userSql.insert, [param.username,param.password,Date.parse(new Date())/1000,type,openid], function (err, results) {
-					if(err){
-						next(err)
-					}
-					else{
-						res.send({status:100, msg:'新用户注册成功!', redir:prefix+ '/wait'});
-					}
+				// Detail info
+				oauthApi.getUser(openid, function (err, result1) { 
+					console.log('getUser err+user: ', err, result1)
+					if(err)  return next(err)
+					var ou = result1
+					
+					// Insert db
+					db.query(userSql.insert, [param.username,param.password,Date.parse(new Date())/1000,type,openid], function (err, results) {
+						console.log('userSql.insert:', err, results)
+						if(err)  return next(err)
+						var uid = results.insertId
+						var link_type = 0
+						db.query(wcUserSql.insert, [
+							openid,
+							uid,
+							link_type,
+							ou.nickname,
+							ou.sex,
+							ou.language,
+							ou.city,
+							ou.province,
+							ou.country,
+							ou.headimgurl
+						], function (err, results) {
+							console.log('wcUserSql.insert:', err, results)
+							if(err)  return next(err)
+							res.send({status:100, msg:'新用户注册成功!', redir:prefix+ '/wait'});
+						})
+					})
 				})
+				
 			}
 			else {
 				// 用户已存在
@@ -143,9 +156,7 @@ router.route(prefix+ '/bind').get(function(req,res){
 			var openid = req.session.openid
 			var type = 1
 			console.log('Bind openid:', openid)
-			if(!openid) {
-				return next(new Error('Openid is missing!'))
-			}
+			if(!openid)  return next(new Error('Openid is missing!'))
 			
 			if (results.length == 0) {
 				// 用户不存在
@@ -153,19 +164,45 @@ router.route(prefix+ '/bind').get(function(req,res){
 			}
 			else {
 				// 用户已存在
-				// TODO: 如果该用户已经绑定别的 openid 了呢？
-				db.query(userSql.bind, [type, openid, user.id], function (err, results){
-					console.log('userSql.bind', err, results)
-					if(err) {
-						next(err)
-					}
-					else {
+				if(user.openid) {
+					return res.send({status:103, msg:'错误: 该用户已绑定过微信!'}) // 避免重复绑定
+				}
+				
+				// Detail info
+				oauthApi.getUser(openid, function (err, result1) { 
+					console.log('getUser err+user: ', err, result1)
+					if(err)  return next(err)
+					var ou = result1
+				
+					// Update db
+					db.query(userSql.bind, [type, openid, user.id], function (err, results){
+						console.log('userSql.bind', err, results)
+						if(err)  next(err)
 						user.openid = openid
 						user.type = type
 						req.session.user = user // 注意: session 一定要先于 send 赋值，否则不保存
-						res.send({status:100, msg:'用户绑定成功！', redir:prefix+ '/home'});
-					}
+						
+						var uid = user.id
+						var link_type = 0
+						db.query(wcUserSql.insert, [
+							openid,
+							uid,
+							link_type,
+							ou.nickname,
+							ou.sex,
+							ou.language,
+							ou.city,
+							ou.province,
+							ou.country,
+							ou.headimgurl
+						], function (err, results) {
+							console.log('wcUserSql.insert:', err, results)
+							if(err)  return next(err)
+							res.send({status:100, msg:'用户绑定成功！', redir:prefix+ '/home'});
+						})						
+					})
 				})
+				
 			}
 		}
 	})
