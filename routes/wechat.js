@@ -52,6 +52,7 @@ router.get(prefix+ '/callback', function(req, res, next) {
 		}
 		console.log('Openid:', openid)
 		console.log('AccessToken:', accessToken)
+    console.log('getAccessToken result:', result);
 		
 		// openid
 		db.query(userSql.getUserByOpenid, [openid], function (err, results){
